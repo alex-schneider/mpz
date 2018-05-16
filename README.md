@@ -59,7 +59,7 @@ Any chunk allocated from the `pool` in MPZ is called `slot`. A `slot` consists
 of a small metadata (32 bits for the header and 32 bits for the footer) and of
 a `data` part. The "regular" slots managed by the bins-array of the `pool`.
 
-#### Huge (large) slots
+### "Huge" slots
 
 In cases that the used needs memory space which is larger as 1.024 bytes in the
 `pool`, the MPZ will allocate extra memory from the OS and assign this space to
@@ -69,9 +69,9 @@ are immediately freed (released back to the OS) and the extra `slab` is released
 from the `pool`. The "regular" `slabs` are not released and can internally be
 reused by the `pool`.
 
-#### Illustrations
+### Illustrations
 
-##### Illustration of `slabs` inside the `pool`
+#### Illustration of `slabs` inside the `pool`
 
 ```markdown
 ||==============================================================||
@@ -85,7 +85,7 @@ reused by the `pool`.
    \_____________________________/
 ```
 
-##### Illustration of the bins and `slots` inside the `pool`
+#### Illustration of the bins and `slots` inside the `pool`
 
 ```markdown
 bin index       |    0 |  ... |    8 |  ... |  127 |
@@ -104,7 +104,7 @@ slots               |             |
                               |======|
 ```
 
-##### Illustration of a "regular" `slot`
+#### Illustration of a "regular" `slot`
 
 The header and footer are always euqals. This fact allows to detect segmentation
 faults. The two highest bits are used for flags. Other bits represent the size of
