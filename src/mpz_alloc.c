@@ -82,15 +82,10 @@ mpz_pool_t *mpz_pool_create(
 	mpz_void_t
 ) {
 	mpz_pool_t *pool;
-	mpz_uint_t  idx;
 
 	MPZ_CHECK_NULL(pool = mpz_memalign(MPZ_ALLOC_ALIGNMENT, MPZ_POOL_SIZE));
 
-	for (idx = 0; idx < MPZ_BINS; idx++) {
-		pool->bins[idx] = NULL;
-	}
-
-	pool->slabs = NULL;
+	mpz_memzero(pool, MPZ_POOL_SIZE);
 
 	return pool;
 }
@@ -172,7 +167,6 @@ static inline mpz_void_t _mpz_pool_gc(
 ) {
 	mpz_slab_t *slab, *next;
 	mpz_slot_t *slot;
-	mpz_uint_t  idx;
 
 	MPZ_CHECK_VOID(pool);
 
@@ -180,13 +174,7 @@ static inline mpz_void_t _mpz_pool_gc(
 
 	slab = pool->slabs;
 
-	for (idx = 0; idx < MPZ_BINS; idx++) {
-		pool->bins[idx] = NULL;
-	}
-
-	if (!soft) {
-		pool->slabs = NULL;
-	}
+	mpz_memzero(pool, MPZ_POOL_SIZE);
 
 	/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
