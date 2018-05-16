@@ -18,7 +18,7 @@ to 1.024 bytes (default) per allocation, e.g. for structs in tokenization applic
   MPZ needs to grab a new memory from the OS.
 * Constant time for any `free` operations inside the `pool` memory.
 * Implements simple checks for `segmentation faults` and `double free` errors.
-* Very easy to modify or to extend.
+* Very easy to modify or extend.
 
 ## Limitations
 
