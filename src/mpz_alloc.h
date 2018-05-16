@@ -23,7 +23,11 @@ mpz_void_t mpz_pool_destroy(
 );
 
 mpz_void_t *mpz_pmalloc(
-	mpz_pool_t *pool, mpz_size_t size
+	mpz_pool_t *pool, mpz_csize_t size
+);
+
+mpz_void_t *mpz_pcalloc(
+	mpz_pool_t *pool, mpz_csize_t size
 );
 
 mpz_void_t mpz_free(

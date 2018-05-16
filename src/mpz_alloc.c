@@ -50,6 +50,10 @@ static inline mpz_void_t _mpz_pool_gc(
 	mpz_pool_t *pool, mpz_cuint_t soft
 );
 
+static inline mpz_void_t *_mpz_palloc(
+	mpz_pool_t *pool, mpz_size_t size, mpz_cuint_t zeroize
+);
+
 static inline mpz_void_t *_mpz_slab_create(
 	mpz_pool_t *pool, mpz_csize_t size
 );
@@ -105,55 +109,15 @@ mpz_void_t mpz_pool_destroy(
 }
 
 mpz_void_t *mpz_pmalloc(
-	mpz_pool_t *pool, mpz_size_t size
+	mpz_pool_t *pool, mpz_csize_t size
 ) {
-	mpz_slab_t *slab;
-	mpz_slot_t *slot;
-	mpz_uint_t  idx;
+	return _mpz_palloc(pool, size, 0);
+}
 
-	MPZ_CHECK_NULL(pool);
-
-	if (size < MPZ_POOL_MIN_ALLOC) {
-		size = MPZ_POOL_MIN_ALLOC;
-	} else if (size > MPZ_POOL_MAX_ALLOC) {
-		return NULL;
-	}
-
-	size = mpz_align(size, MPZ_SLOTS_ALIGNMENT);
-
-	if (size > (MPZ_BINS << MPZ_BINS_BIT_SHIFT)) {
-		/* We have to grab a new memory from the OS. */
-		MPZ_CHECK_NULL(slab = _mpz_slab_create(pool, size + MPZ_SLOT_SIZE));
-
-		/**
-		 * The new slab contains only a single slot and this
-		 * slot is immediately marked as "huge" and "used".
-		*/
-		_mpz_slot_init(slot = MPZ_SLAB_TO_SLOT(slab), size, MPZ_SLOT_FLAG_HUGE|MPZ_SLOT_FLAG_USED);
-
-		return MPZ_SLOT_TO_DATA(slot);
-	}
-
-	idx = MPZ_BIN_IDX(size);
-
-	if (NULL == (slot = pool->bins[idx])) {
-		/**
-		 * The pool is either completely empty (new) or consists of slabs
-		 * without empty slots. We have to grab a new memory from the OS.
-		*/
-		MPZ_CHECK_NULL(slab = _mpz_slab_create(pool, (size + MPZ_SLOT_SIZE) * MPZ_SLAB_ALLOC_MUL));
-
-		_mpz_slab_init(pool, slab, size);
-	}
-
-	/* Pop a slot from the bins-array of the pool. */
-	slot = pool->bins[idx];
-	pool->bins[idx] = slot->next;
-
-	/* Mark the slot as "used". */
-	_mpz_slot_init(slot, size, MPZ_SLOT_FLAG_USED);
-
-	return MPZ_SLOT_TO_DATA(slot);
+mpz_void_t *mpz_pcalloc(
+	mpz_pool_t *pool, mpz_csize_t size
+) {
+	return _mpz_palloc(pool, size, 1);
 }
 
 mpz_void_t mpz_free(
@@ -249,6 +213,62 @@ static inline mpz_void_t _mpz_pool_gc(
 
 		slab = next;
 	}
+}
+
+static inline mpz_void_t *_mpz_palloc(
+	mpz_pool_t *pool, mpz_size_t size, mpz_cuint_t zeroize
+) {
+	mpz_slab_t *slab;
+	mpz_slot_t *slot;
+	mpz_uint_t  idx;
+
+	MPZ_CHECK_NULL(pool);
+
+	if (size < MPZ_POOL_MIN_ALLOC) {
+		size = MPZ_POOL_MIN_ALLOC;
+	} else if (size > MPZ_POOL_MAX_ALLOC) {
+		return NULL;
+	}
+
+	size = mpz_align(size, MPZ_SLOTS_ALIGNMENT);
+
+	if (size > (MPZ_BINS << MPZ_BINS_BIT_SHIFT)) {
+		/* We have to grab a new memory from the OS. */
+		MPZ_CHECK_NULL(slab = _mpz_slab_create(pool, size + MPZ_SLOT_SIZE));
+
+		/**
+		 * The new slab contains only a single slot and this
+		 * slot is immediately marked as "huge" and "used".
+		*/
+		_mpz_slot_init(slot = MPZ_SLAB_TO_SLOT(slab), size, MPZ_SLOT_FLAG_HUGE|MPZ_SLOT_FLAG_USED);
+
+		return MPZ_SLOT_TO_DATA(slot);
+	}
+
+	idx = MPZ_BIN_IDX(size);
+
+	if (NULL == (slot = pool->bins[idx])) {
+		/**
+		 * The pool is either completely empty (new) or consists of slabs
+		 * without empty slots. We have to grab a new memory from the OS.
+		*/
+		MPZ_CHECK_NULL(slab = _mpz_slab_create(pool, (size + MPZ_SLOT_SIZE) * MPZ_SLAB_ALLOC_MUL));
+
+		_mpz_slab_init(pool, slab, size);
+	}
+
+	/* Pop a slot from the bins-array of the pool. */
+	slot = pool->bins[idx];
+	pool->bins[idx] = slot->next;
+
+	/* Mark the slot as "used". */
+	_mpz_slot_init(slot, size, MPZ_SLOT_FLAG_USED);
+
+	if (zeroize) {
+		memset(MPZ_SLOT_TO_DATA(slot), 0, size);
+	}
+
+	return MPZ_SLOT_TO_DATA(slot);
 }
 
 static inline mpz_void_t *_mpz_slab_create(

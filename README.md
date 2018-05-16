@@ -148,7 +148,15 @@ than 1.024 bytes, a "huge" `slot` is allocated directly from the OS like describ
 above in the section `Huge (large) slots`). Returns `NULL` if failed.
 
 ```c
-mpz_void_t *mpz_pmalloc(mpz_pool_t *pool, mpz_size_t size);
+mpz_void_t *mpz_pmalloc(mpz_pool_t *pool, mpz_csize_t size);
+```
+
+Allocates `size` bytes of memory from the `pool` like the `mpz_pmalloc()` function.
+The difference to `mpz_pmalloc()` is that the `mpz_pcalloc()` sets allocated memory
+to zero. Returns `NULL` if failed.
+
+```c
+mpz_void_t *mpz_pcalloc(mpz_pool_t *pool, mpz_csize_t size);
 ```
 
 Releases the allocated memory back to the `pool`. The memory of any "huge" `slots`
