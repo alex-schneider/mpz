@@ -8,8 +8,9 @@
 /* ==================================================================================================== */
 /* PRIVATE STUFF: DECLARATIONS */
 
-#define mpz_memalign(a, s)   ({ mpz_void_t *p; (0 != posix_memalign(&p, a, s) ? NULL : p); })
-#define mpz_align(s, a)      (((s) + (a - 1)) & ~(a - 1))
+#define mpz_memalign(a, s)   ({ mpz_void_t *p; (0 != posix_memalign(&p, (a), (s)) ? NULL : p); })
+#define mpz_memzero(p, n)    ({ memset((mpz_void_t *)(p), 0, (n)); })
+#define mpz_align(s, a)      (((s) + ((a) - 1)) & ~((a) - 1))
 
 #define MPZ_ALLOC_ALIGNMENT  (2 * sizeof(mpz_void_t *))
 
@@ -32,7 +33,7 @@
 #define MPZ_POOL_MAX_ALLOC   ((mpz_cuint32_t)((1 << 28) - 1))
 
 #define MPZ_SLOT_GOTO_FOOT(sl, si)  ( \
-	(mpz_uint32_t *)((mpz_uchar_t *)(sl) + sizeof(mpz_uint32_t) + si) \
+	(mpz_uint32_t *)((mpz_uchar_t *)(sl) + sizeof(mpz_uint32_t) + (si)) \
 )
 #define MPZ_SLOT_READ_HEAD(s)       ( \
 	(mpz_uint32_t *)(s) \
@@ -41,7 +42,7 @@
 	(mpz_uint32_t)((*MPZ_SLOT_READ_HEAD(s) << 2) >> 2) \
 )
 #define MPZ_SLOT_READ_FOOT(s)       ( \
-	(mpz_uint32_t *)MPZ_SLOT_GOTO_FOOT(s, MPZ_SLOT_READ_SIZE(s)) \
+	(mpz_uint32_t *)MPZ_SLOT_GOTO_FOOT((s), MPZ_SLOT_READ_SIZE(s)) \
 )
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -265,7 +266,7 @@ static inline mpz_void_t *_mpz_palloc(
 	_mpz_slot_init(slot, size, MPZ_SLOT_FLAG_USED);
 
 	if (zeroize) {
-		memset(MPZ_SLOT_TO_DATA(slot), 0, size);
+		mpz_memzero(MPZ_SLOT_TO_DATA(slot), size);
 	}
 
 	return MPZ_SLOT_TO_DATA(slot);
