@@ -104,19 +104,21 @@ slots               |             |
                               |======|
 ```
 
-#### Illustration of a "regular" `slot`
+#### Illustration of "regular" `slots`
 
 The header and footer are always euqals. This fact allows to detect segmentation
 faults. The two highest bits are used for flags. Other bits represent the size of
 the `slot`.
 
 ```markdown
-||============================================||
-||  header   |      data part     |  footer   ||
-||           |                    |           ||
-|| (32 bits) | (always 2^n bytes) | (32 bits) ||
-||           | (  min 8 bytes   ) |           ||
-||============================================||
+                                                        /
+||===================================================|| \ ||===================================================||
+||  header   |      data part     |  footer   |      || / ||  header   |      data part     |  footer   |      ||
+||           |                    |           |      || \ ||           |                    |           |      ||
+|| (32 bits) | (  min 8 bytes   ) | (32 bits) | next || / || (32 bits) | (  min 8 bytes   ) | (32 bits) | next ||
+||================================================\==|| \ ||===================================================||
+                                                   \    / /
+                                                    \____/
 ```
 
 ## MPZ API
