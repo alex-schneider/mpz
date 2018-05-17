@@ -155,6 +155,12 @@ Allocates `size` bytes of memory from the `pool` like the `mpz_pmalloc()` functi
 The difference to `mpz_pmalloc()` is that the `mpz_pcalloc()` sets allocated memory
 to zero. Returns `NULL` if failed.
 
+```note
+Note that `mpz_pcalloc()` is always slower than `mpz_pmalloc()`, because the used
+`memset()` function requires an extra iteration over the requested memory space
+for zeroization.
+```
+
 ```c
 mpz_void_t *mpz_pcalloc(mpz_pool_t *pool, mpz_csize_t size);
 ```
