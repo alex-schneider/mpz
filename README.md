@@ -2,8 +2,8 @@
 
 The MPZ is a simple implementation, of a very fast and effective memory pool. It's
 designed for using in applications with a lot of memory space allocations of the
-repeatedly sizes up to 1.024 bytes (default) per allocation, e.g. for structs in
-tokenization applications.
+repeatedly sizes up to 1.024 bytes (default, configurable) per allocation, e.g.
+for structs in tokenization applications.
 
 ## Features
 
@@ -39,7 +39,7 @@ which is 16 bytes on 64 bit systems. By the way, the memory pool of [nginx](http
 is one of the fastest pools today (as of year 2018) and it also uses this alignment,
 too. To allow a finer granulated usage of the memory space inside the MPZ, the MPZ
 implements binning of `slots`. The size of the memory space alignment for `slots`
-inside the MPZ is 8 bytes (default).
+inside the MPZ is 8 bytes (default, configurable).
 
 ### Pool
 
@@ -55,21 +55,23 @@ The size of a MPZ `pool` is 1.040 bytes on 64 bit systems.
 
 Every memory block allocated from the OS in MPZ is called `slab`. A `slab` consists
 of a small metadata (16 bytes on 64 bit systems) and of an 1-to-n number of
-`slots`, where `n` is defined as `MPZ_SLAB_ALLOC_MUL` constant (default `16`).
+`slots`, where `n` is defined as `MPZ_SLAB_ALLOC_MUL` constant (default `16`,
+configurable).
 
 ### Regular slots
 
 Every chunk allocated from the `pool` in MPZ is called `slot`. A `slot` consists
 of a small metadata (32 bits for a header and 32 bits for a footer) and of a `data`
 part. The `data` part is the memory space that is returned to a user on an
-allocation request. The regular `slots` have a size of up to 1.024 bytes (default)
-and are managed by the bins-array of the `pool`.
+allocation request. The regular `slots` have a size of up to 1.024 bytes (default,
+configurable) and are managed by the bins-array of the `pool`.
 
 ### Huge slots
 
-In cases that the used needs memory space that is larger as the default of 1.024
-bytes, the MPZ will allocate an extra memory space from the OS and assign this space
-to a single `slot` in an extra `slab`. The differences to the regular `slots` are:
+In cases that the used needs memory space that is larger as the configurable default
+of 1.024 bytes, the MPZ will allocate an extra memory space from the OS and assign
+this space to a single `slot` in an extra `slab`. The differences to the regular
+`slots` are:
 
 * The huge `slabs` aren't managed by the bins-array of the `pool` and they are
   consequently not reusable.
@@ -162,10 +164,10 @@ mpz_void_t mpz_pool_destroy(mpz_pool_t *pool);
 ### mpz_pmalloc()
 
 Allocates `size` bytes of the memory space from the `pool`. If the requested size
-is greater than the default of 1.024 bytes, a huge `slot` is directly allocated
-from the OS like described above in the section `Huge slots`. If the `pool` hasn't
-enouth free memory space to serve the requested `size` of bytes, a new `slab` is
-allocated from the OS. Returns `NULL` if failed.
+is greater than the configurable default of 1.024 bytes, a huge `slot` is directly
+allocated from the OS like described above in the section `Huge slots`. If the `pool`
+hasn't enouth free memory space to serve the requested `size` of bytes, a new `slab`
+is allocated from the OS. Returns `NULL` if failed.
 
 ```c
 mpz_void_t *mpz_pmalloc(mpz_pool_t *pool, mpz_csize_t size);
