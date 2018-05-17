@@ -183,7 +183,7 @@ the `mpz_core.h`.
 ### Example
 
 ```c
-#include "mpz_api.h"
+#include "mpz_alloc.h"
 
 int example_function()
 {
