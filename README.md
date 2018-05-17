@@ -1,73 +1,80 @@
 # MEMORY-POOL-Z (MPZ)
 
 The MPZ is a simple implementation, of a very fast and effective memory pool. It's
-designed for using in applications with a lot of allocations of "the same" sizes up
-to 1.024 bytes (default) per allocation, e.g. for structs in tokenization applications.
+designed for using in applications with a lot of memory space allocations of the
+repeatedly sizes up to 1.024 bytes (default) per allocation, e.g. for structs in
+tokenization applications.
 
 ## Features
 
 * Written in pure `C`.
 * Doesn't require any external libraries.
 * Optimized for 32 and 64 bit systems on little-endian machines.
-* Prevents internal memory fragmentation (freed `slots` are reusable).
-* Implements memory alignments for faster access to the `pool` and its internal
-  members.
-* Implements a very fast reset of the memory in the total `pool`, which in most
-  memory pool implementations is either unavailable or quite slow.
-* Constant time for any allocation operations from the `pool` memory unless the
-  MPZ needs to grab a new memory from the OS.
-* Constant time for any `free` operations inside the `pool` memory.
-* Implements simple checks for `segmentation faults` and `double free` errors.
+* Prevents internal memory space fragmentation (freed memory space is reusable).
+* Implements memory space alignment to avoid wasting CPU cycles when accessing the
+  data.
+* Implements a very fast reset of the allocated memory space to permitt the memory
+  space to be efficiently reused, which in most memory pool implementations is
+  either unavailable or quite slow.
+* Constant time for the memory space allocations from the internal memory unless
+  the MPZ needs to grab a new memory space from the OS.
+* Constant time for the `free` operations to the internal memory space.
+* Implements simple security checks for `segmentation faults` and `double free`
+  errors.
 * Very easy to modify or extend.
 
 ## Limitations
 
-* The allowed maximum allocation size from the `pool` is `2^29 - 1` bytes.
+* The maximum allocation size from MPZ is limited to `2^29 - 1` (536.870.911) bytes
+  per allocation request.
 * The code compiles and runs on Linux systems. Other platforms haven't been tested.
 
 ## About MPZ
 
-The MPZ implements memory alignment for the `pool`, for all `slabs` and all `slots`
-to allow the user a quick access to these elements. When the data is aligned in the
-memory you don't waste CPU cycles in order to access the data. The alignment size
-for memory allocations from the OS is borrowed from GNU libc and is defined as
-`2 * sizeof(size_t)` which is 16 bytes on 64 bit systems. By the way, the memory
-pool of [nginx](http://nginx.org) is one of the fastest pools today (as of year
-2018) and it also uses this alignment, too. To allow a finer granulated usage of
-the memory inside the `pool`, the MPZ implements binning of `slots`. The internal
-alignment size for the `slots` from the pool is 8 bytes.
+The MPZ implements memory space alignment to avoid wasting CPU cycles when accessing
+the data. The alignment is continuously implemented for the internal purposes as
+well as for the return pointers to the user. The alignment size for memory space
+allocations from the OS is borrowed from GNU libc and is defined as `2 * sizeof(size_t)`
+which is 16 bytes on 64 bit systems. By the way, the memory pool of [nginx](http://nginx.org)
+is one of the fastest pools today (as of year 2018) and it also uses this alignment,
+too. To allow a finer granulated usage of the memory space inside the MPZ, the MPZ
+implements binning of `slots`. The size of the memory space alignment for `slots`
+inside the MPZ is 8 bytes (default).
 
 ### Pool
 
 The `pool` is the main object of MPZ. It's the owner of:
 
-* an array of linked lists for all free `slots` in the `pool` grouped by aligned
+* an array of linked lists for the free `slots` in the `pool` grouped by aligned
   size of the `slots` (binning).
-* a doubly-linked list of all allocated `slabs` from the OS (stack).
+* a doubly-linked list of the allocated `slabs` from the OS (stack).
 
 The size of a MPZ `pool` is 1.040 bytes on 64 bit systems.
 
 ### Slabs
 
-Any memory block allocated from the OS in MPZ is called `slab`. A `slab` consists
+Every memory block allocated from the OS in MPZ is called `slab`. A `slab` consists
 of a small metadata (16 bytes on 64 bit systems) and of an 1-to-n number of
 `slots`, where `n` is defined as `MPZ_SLAB_ALLOC_MUL` constant (default `16`).
 
-### "Regular" slots
+### Regular slots
 
-Any chunk allocated from the `pool` in MPZ is called `slot`. A `slot` consists
-of a small metadata (32 bits for the header and 32 bits for the footer) and of
-a `data` part. The "regular" slots managed by the bins-array of the `pool`.
+Every chunk allocated from the `pool` in MPZ is called `slot`. A `slot` consists
+of a small metadata (32 bits for a header and 32 bits for a footer) and of a `data`
+part. The `data` part is the memory space that is returned to a user on an
+allocation request. The regular `slots` have a size of up to 1.024 bytes (default)
+and are managed by the bins-array of the `pool`.
 
-### "Huge" slots
+### Huge slots
 
-In cases that the used needs memory space which is larger as 1.024 bytes in the
-`pool`, the MPZ will allocate extra memory from the OS and assign this space to
-a single `slot` in an extra `slab`. The `slot` is marked as "huge" and "used".
-If the user resets the `pool`, the memory of any `slabs` containing "huge" `slots`
-are immediately freed (released back to the OS) and the extra `slab` is released
-from the `pool`. The "regular" `slabs` are not released and can internally be
-reused by the `pool`.
+In cases that the used needs memory space that is larger as the default of 1.024
+bytes, the MPZ will allocate an extra memory space from the OS and assign this space
+to a single `slot` in an extra `slab`. The differences to the regular `slots` are:
+
+* The huge `slabs` aren't managed by the bins-array of the `pool` and they are
+  consequently not reusable.
+* If a huge `slab` is freed, their memory space is immediately released back to
+  the OS.
 
 ### Illustrations
 
@@ -124,52 +131,66 @@ the `slot`.
 
 ## MPZ API
 
-Creates a new MPZ `pool`. Returns `NULL` if failed.
+### mpz_pool_create()
+
+Allocates an aligned memory space for the `pool`, initializes the allocated memory
+space to zero and returns a pointer to the `pool` object. Returns `NULL` if failed.
 
 ```c
 mpz_pool_t *mpz_pool_create(mpz_void_t);
 ```
 
-Resets the `pool`. The memory of any `slabs` containing "huge" `slots` are
-immediately freed (released back to the OS) and the `slab` is released from the
-`pool`. The memory of any `slabs` containing "regular" `slots` are not released
-and can internally be reused by the `pool`.
+### mpz_pool_reset()
+
+Resets the allocated memory space to permitt him to be efficiently reused by the
+`pool`. Note that the memory space of huge `slots` is immediately released back
+to the OS.
 
 ```c
 mpz_void_t mpz_pool_reset(mpz_pool_t *pool);
 ```
 
-Destroys the `pool`. All of allocated memory inclusive the memory of the `pool`
-itself is released back to the OS.
+### mpz_pool_destroy()
+
+Destroys the `pool`. The total allocated memory space inclusive the memory space
+of the `pool` itself is released back to the OS.
 
 ```c
 mpz_void_t mpz_pool_destroy(mpz_pool_t *pool);
 ```
 
-Allocates `size` bytes of memory from the `pool`. If the requested size is greater
-than 1.024 bytes, a "huge" `slot` is allocated directly from the OS like described
-above in the section `Huge (large) slots`). Returns `NULL` if failed.
+### mpz_pmalloc()
+
+Allocates `size` bytes of the memory space from the `pool`. If the requested size
+is greater than the default of 1.024 bytes, a huge `slot` is directly allocated
+from the OS like described above in the section `Huge slots`. If the `pool` hasn't
+enouth free memory space to serve the requested `size` of bytes, a new `slab` is
+allocated from the OS. Returns `NULL` if failed.
 
 ```c
 mpz_void_t *mpz_pmalloc(mpz_pool_t *pool, mpz_csize_t size);
 ```
 
-Allocates `size` bytes of memory from the `pool` like the `mpz_pmalloc()` function.
-The difference to `mpz_pmalloc()` is that the `mpz_pcalloc()` sets allocated memory
-to zero. Returns `NULL` if failed.
+### mpz_pcalloc()
+
+Allocates `size` bytes of the memory space from the `pool` like `mpz_pmalloc()`
+function. Additionaly, all bits of the allocated memory space are initialized with
+zero. Returns `NULL` if failed.
 
 ```note
-Note that `mpz_pcalloc()` is always slower than `mpz_pmalloc()`, because the used
-`memset()` function requires an extra iteration over the requested memory space
-for zeroization.
+Note that the `mpz_pcalloc()` function is always slower than the `mpz_pmalloc()`,
+because the initializing of the bits in the memory space with zero requires an extra
+iteration over the requested memory space.
 ```
 
 ```c
 mpz_void_t *mpz_pcalloc(mpz_pool_t *pool, mpz_csize_t size);
 ```
 
-Releases the allocated memory back to the `pool`. The memory of any "huge" `slots`
-are immediately freed (released back to the OS).
+### mpz_free()
+
+Releases the allocated memory space back to the `pool`. The memory space of huge
+`slots` are immediately released back to the OS.
 
 ```c
 mpz_void_t mpz_free(mpz_pool_t *pool, mpz_void_t *data);
