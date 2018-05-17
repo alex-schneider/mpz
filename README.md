@@ -104,7 +104,7 @@ slots               |             |
                               |======|
 ```
 
-#### Illustration of "regular" `slots`
+#### Illustration of "regular" `slots` inside the bins-array
 
 The header and footer are always euqals. This fact allows to detect segmentation
 faults. The two highest bits are used for flags. Other bits represent the size of
