@@ -150,7 +150,7 @@ mpz_void_t mpz_free(
 	_mpz_slot_init(slot, size, 0);
 
 	/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-	/* Push the slot into the bins-array of the pool. */
+	/* Push the slot into the bins-array. */
 
 	idx  = MPZ_BIN_IDX(size);
 
@@ -179,14 +179,10 @@ static inline mpz_void_t _mpz_pool_gc(
 	/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 	/**
-	 * Slabs contain "huge" slots are immediately destroyed.
-	 * 
-	 * If "soft" is set to 1:
-	 * 		Any other slab is reseted to it's initial state
-	 * 		to permitt the pool to be efficiently reused.
-	 * 
-	 * If "soft" is set to 0:
-	 * 		Any other slab is immediately destroyed, too.
+	 * Slabs contain a huge slot are immediately destroyed. If "soft"
+	 * is set to 0, all other slabs are immediately destroyed, too,
+	 * otherwise the other slabs are reseted to theirs initial state
+	 * to permitt the pool to be efficiently reused.
 	*/
 
 	while (NULL != slab) {
@@ -222,13 +218,10 @@ static inline mpz_void_t *_mpz_palloc(
 	size = mpz_align(size, MPZ_SLOTS_ALIGNMENT);
 
 	if (size > (MPZ_BINS << MPZ_BINS_BIT_SHIFT)) {
-		/* We have to grab a new memory from the OS. */
+		/* We have to grab a new memory space from the OS. */
 		MPZ_CHECK_NULL(slab = _mpz_slab_create(pool, size + MPZ_SLOT_SIZE));
 
-		/**
-		 * The new slab contains only a single slot and this
-		 * slot is immediately marked as "huge" and "used".
-		*/
+		/* The new slab contains only a single huge slot. */
 		_mpz_slot_init(slot = MPZ_SLAB_TO_SLOT(slab), size, MPZ_SLOT_FLAG_HUGE|MPZ_SLOT_FLAG_USED);
 
 		return MPZ_SLOT_TO_DATA(slot);
@@ -239,14 +232,15 @@ static inline mpz_void_t *_mpz_palloc(
 	if (NULL == (slot = pool->bins[idx])) {
 		/**
 		 * The pool is either completely empty (new) or consists of slabs
-		 * without empty slots. We have to grab a new memory from the OS.
+		 * without empty slots for the requested size in the bins-list.
+		 * We have to grab a new memory space from the OS.
 		*/
 		MPZ_CHECK_NULL(slab = _mpz_slab_create(pool, (size + MPZ_SLOT_SIZE) * MPZ_SLAB_ALLOC_MUL));
 
 		_mpz_slab_init(pool, slab, size);
 	}
 
-	/* Pop a slot from the bins-array of the pool. */
+	/* Pop a slot from the bins-array. */
 	slot = pool->bins[idx];
 	pool->bins[idx] = slot->next;
 
@@ -288,9 +282,9 @@ static inline mpz_void_t _mpz_slab_init(
 			/**
 			 * Handle the last slot:
 			 * 
-			 * Append the current bin at the last slot
-			 * of our slab and let the first slot of our
-			 * slab be the leader of the current bin.
+			 * Append the content of the current bin at the
+			 * last slot of our slab and let the first slot
+			 * of our slab be the leader of the current bin.
 			*/
 
 			slot->next = pool->bins[idx];
@@ -324,7 +318,7 @@ static inline mpz_void_t _mpz_slab_free(
 	mpz_slab_t *slab = MPZ_SLOT_TO_SLAB(slot);
 
 	/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-	/* Pop the slab from the slabs list. */
+	/* Remove the slab from the slabs list. */
 
 	if (NULL != slab->prev) {
 		slab->prev->next = slab->next;
