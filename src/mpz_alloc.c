@@ -32,18 +32,23 @@
 #define MPZ_POOL_MIN_ALLOC   (MPZ_SLOTS_ALIGNMENT)
 #define MPZ_POOL_MAX_ALLOC   ((mpz_cuint32_t)((1 << 29) - 1))
 
-#define MPZ_SLOT_GOTO_FOOT(sl, si)  ( \
-	(mpz_uint32_t *)((mpz_uchar_t *)(sl) + sizeof(mpz_uint32_t) + (si)) \
-)
 #define MPZ_SLOT_READ_HEAD(s)       ( \
 	(mpz_uint32_t *)(s) \
 )
 #define MPZ_SLOT_READ_SIZE(s)       ( \
 	(mpz_uint32_t)((*MPZ_SLOT_READ_HEAD(s) << 2) >> 2) \
 )
+
+#ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
+
+#define MPZ_SLOT_GOTO_FOOT(sl, si)  ( \
+	(mpz_uint32_t *)((mpz_uchar_t *)(sl) + sizeof(mpz_uint32_t) + (si)) \
+)
 #define MPZ_SLOT_READ_FOOT(s)       ( \
 	(mpz_uint32_t *)MPZ_SLOT_GOTO_FOOT((s), MPZ_SLOT_READ_SIZE(s)) \
 )
+
+#endif /* MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -82,10 +87,15 @@ mpz_pool_t *mpz_pool_create(
 	mpz_void_t
 ) {
 	mpz_pool_t *pool;
+	mpz_uint_t  idx;
 
 	MPZ_CHECK_NULL(pool = mpz_memalign(MPZ_ALLOC_ALIGNMENT, MPZ_POOL_SIZE));
 
-	mpz_memzero(pool, MPZ_POOL_SIZE);
+	for (idx = 0; idx < MPZ_BINS; idx++) {
+		pool->bins[idx] = NULL;
+	}
+
+	pool->slabs = NULL;
 
 	return pool;
 }
@@ -120,7 +130,7 @@ mpz_void_t mpz_free(
 	mpz_pool_t *pool, mpz_cvoid_t *data
 ) {
 	mpz_slot_t   *slot;
-	mpz_uint32_t *head, *foot, size;
+	mpz_uint32_t *head, size;
 	mpz_uint_t    idx;
 
 	MPZ_CHECK_VOID(pool);
@@ -128,17 +138,16 @@ mpz_void_t mpz_free(
 
 	slot = MPZ_DATA_TO_SLOT(data);
 	head = MPZ_SLOT_READ_HEAD(slot);
-	foot = MPZ_SLOT_READ_FOOT(slot);
-
-	if ((*head != *foot) || (!(*head & MPZ_SLOT_FLAG_USED))) {
 
 #ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
 
+	if ((*head != *MPZ_SLOT_READ_FOOT(slot)) || (!(*head & MPZ_SLOT_FLAG_USED))) {
 		raise(SIGSEGV);
+	}
 
 #endif /* MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS */
 
-	} else if (*head & MPZ_SLOT_FLAG_HUGE) {
+	if (*head & MPZ_SLOT_FLAG_HUGE) {
 		return _mpz_slab_free(pool, slot);
 	}
 
@@ -167,14 +176,18 @@ static inline mpz_void_t _mpz_pool_gc(
 ) {
 	mpz_slab_t *slab, *next;
 	mpz_slot_t *slot;
+	mpz_uint_t  idx;
 
 	MPZ_CHECK_VOID(pool);
 
 	/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	slab = pool->slabs;
+	for (idx = 0; idx < MPZ_BINS; idx++) {
+		pool->bins[idx] = NULL;
+	}
 
-	mpz_memzero(pool, MPZ_POOL_SIZE);
+	slab = pool->slabs;
+	pool->slabs = NULL;
 
 	/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -338,12 +351,17 @@ static inline mpz_void_t _mpz_slab_free(
 static inline mpz_void_t _mpz_slot_init(
 	mpz_slot_t *slot, mpz_cuint32_t size, mpz_cuint32_t flags
 ) {
-	mpz_uint32_t *head = MPZ_SLOT_READ_HEAD(slot);
-	mpz_uint32_t *foot = MPZ_SLOT_GOTO_FOOT(slot, size);
-
 	/**
 	 * We have always to reset current state
 	 * using "0" in this bitwise operation.
 	*/
-	*head = *foot = (0 | flags | size);
+
+	*MPZ_SLOT_READ_HEAD(slot) = (0 | flags | size);
+
+#ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
+
+	*MPZ_SLOT_GOTO_FOOT(slot, size) = (0 | flags | size);
+
+#endif /* MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS */
+
 }
