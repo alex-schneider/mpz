@@ -30,7 +30,7 @@
 #define MPZ_SLOT_FLAG_HUGE   ((mpz_cuint32_t)(1 << 31))
 
 #define MPZ_POOL_MIN_ALLOC   (MPZ_SLOTS_ALIGNMENT)
-#define MPZ_POOL_MAX_ALLOC   ((mpz_cuint32_t)((1 << 28) - 1))
+#define MPZ_POOL_MAX_ALLOC   ((mpz_cuint32_t)((1 << 29) - 1))
 
 #define MPZ_SLOT_GOTO_FOOT(sl, si)  ( \
 	(mpz_uint32_t *)((mpz_uchar_t *)(sl) + sizeof(mpz_uint32_t) + (si)) \
