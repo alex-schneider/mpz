@@ -25,8 +25,8 @@ for structs in tokenization applications.
 
 ## Limitations
 
-* The maximum allocation size from MPZ is limited to `2^29 - 1` (536.870.911) bytes
-  per allocation request.
+* The maximum allocation size from MPZ is limited to `2^30 - 1` (1.073.741.823)
+  bytes per allocation request.
 * The code compiles and runs on Linux systems. Other platforms haven't been tested.
 
 ## About MPZ
@@ -80,44 +80,51 @@ this space to a single `slot` in an extra `slab`. The differences to the regular
 
 ### Illustrations
 
-#### Illustration of `slabs` inside the `pool`
+#### Illustration of a MPZ `pool`
 
 ```markdown
-||==============================================================||
-||           slab one           ||           slab two           ||
-||  metadata   |      slots     ||  metadata   |      slots     ||
-||             |                ||             |                ||
-|| prev | next | .............. || prev | next | .............. ||
-||===\======\===================/===/=======\===================||
- \    \      \                 /   /         \
-  \  NULL     \_______________/   /         NULL
-   \_____________________________/
+SLABS (stack)
+
+                                                 /
+||============================================|| \ ||=====================||
+||        slab 1       ||        slab 2       || / ||        slab n       ||
+||                     ||                     || \ ||                     ||
+||  metadata   | slots ||  metadata   | slots || / ||  metadata   | slots ||
+||             |       ||             |       || \ ||             |       ||
+|| prev | next | ..... || prev | next | ..... || / || prev | next | ..... ||
+||===\======\==========/===/=======\==========|| \ ||==/=======\==========||
+ \    \      \        /   /         \            /    /         \
+  \    \      \      /   /           \          ...  /           \
+   \  NULL     \____/   /             \________/   \/           NULL
+    \__________________/
+
+
+BINS (binning)
+
+||===============================================================||
+||     0 | ..... |     7 |     8 | ..... |    96 | ..... |   127 ||   <<< bin-index
+||---------------------------------------------------------------||
+||     8 | ..... |    64 |    72 | ..... |   776 | ..... |  1024 ||   <<< size in bytes per slot
+||===============================================================||
+     |               |                       |
+     |               |                       |
+ |=======|       |=======|               |=======|
+ |       |       |       |               |       |
+ |=======|       |=======|               |=======|
+                     |                       |
+                     |                       |                        <<< free slots
+                 |=======|               |=======|
+                 |       |               |       |
+                 |=======|               |=======|
+                     |
+                     |
+                 |=======|
+                 |       |
+                 |=======|
+
 ```
 
-#### Illustration of the bins and `slots` inside the `pool`
-
-```markdown
-bin index       |    0 |  ... |    8 |  ... |  127 |
-                |======|======|======|======|======|
-size in bytes   |    8 |  ... |  256 |  ... | 1024 |
-                |======|======|======|======|======|
-                    |             |
-slots               |             |
-                |======|      |======|
-                |      |      |      |
-                |======|      |======|
-                                  |
-                                  |
-                              |======|
-                              |      |
-                              |======|
-```
-
-#### Illustration of "regular" `slots` inside the bins-array
-
-The header and footer are always euqals. This fact allows to detect segmentation
-faults. The two highest bits are used for flags. Other bits represent the size of
-the `slot`.
+#### Illustration of the regular MPZ `slots` inside the bins-list
 
 ```markdown
                slot from slab x                                      slot from slab y
@@ -129,6 +136,28 @@ the `slot`.
 ||===========================================\==|| \ ||===========================================\==||
                                               \    / /                                             \
                                                \____/                                             NULL
+```
+
+#### Illustration of a MPZ `slot` header and footer bits
+
+The header and footer are always equals. This fact allows to detect `segmentation
+fault` errors if an application writes over the allocated memory space (unreliable
+but simple).
+
+```markdown
+=======
+|  31 |   <<< "huge" flag (MSB on little-endian machines)
+-------
+|  30 |   <<< "used" flag (allows to detect "double free" errors)
+-------
+|  29 |   <<< currently unused (reserved for possible extensions)
+-------
+|  28 |\
+------- \
+| ... |   <<< represent the slot size
+------- /
+|   0 |/  (LSB on little-endian machines)
+=======
 ```
 
 ## MPZ API
