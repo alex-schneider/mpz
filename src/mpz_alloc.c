@@ -156,7 +156,11 @@ mpz_void_t mpz_free(
 
 	size = MPZ_SLOT_READ_SIZE(slot);
 
+#ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
+
 	_mpz_slot_init(slot, size, 0);
+
+#endif /* MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS */
 
 	/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 	/* Push the slot into the bins-array. */
@@ -257,8 +261,12 @@ static inline mpz_void_t *_mpz_palloc(
 	slot = pool->bins[idx];
 	pool->bins[idx] = slot->next;
 
+#ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
+
 	/* Mark the slot as "used". */
 	_mpz_slot_init(slot, size, MPZ_SLOT_FLAG_USED);
+
+#endif /* MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS */
 
 	if (zeroize) {
 		mpz_memzero(MPZ_SLOT_TO_DATA(slot), size);
