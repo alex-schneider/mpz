@@ -238,7 +238,7 @@ the `mpz_core.h`.
 The MPZ should be used wisely. Note that the MPZ is a high-level application. It's
 a simple interface between the user and the `malloc()` and the `free()` functions.
 The MPZ doesn't interact with the OS directly. Any invalid read/write errors are
-difficultly to detect than on using `malloc()` function directly. For example, many
+difficultly to detect than using `malloc()` function directly. For example, many
 users forget to allocate an extra byte to terminate a string with a `\0` byte. Here
 is a big difference between the allocation of memory space from the `malloc()` function
 and the MPZ. If the user allocates 5 bytes of memory space from the MPZ to write a
