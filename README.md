@@ -29,6 +29,10 @@ for structs in tokenization applications.
   bytes per allocation request.
 * The code compiles and runs on Linux systems. Other platforms haven't been tested.
 
+## TODOs
+
+* Implementation of a `mpz_prealloc()` function.
+
 ## About MPZ
 
 The MPZ implements memory space alignment to avoid wasting CPU cycles when accessing
