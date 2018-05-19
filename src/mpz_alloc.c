@@ -365,7 +365,6 @@ static inline mpz_void_t _mpz_slot_init(
 	 * We have always to reset current state
 	 * using "0" in this bitwise operation.
 	*/
-
 	*MPZ_SLOT_READ_HEAD(slot) = (0 | flags | size);
 
 #ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
