@@ -33,6 +33,10 @@ for structs in tokenization applications.
 
 * Implementation of a `mpz_prealloc()` function.
 
+## Bugs
+
+* No bugs known!
+
 ## About MPZ
 
 The MPZ implements memory space alignment to avoid wasting CPU cycles when accessing
