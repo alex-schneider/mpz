@@ -143,6 +143,7 @@ mpz_void_t mpz_free(
 
 #ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
 
+	/* Check both "segmentation faults" and "double free" errors. */
 	if ((MPZ_FOOTER_MARK != *MPZ_SLOT_READ_FOOT(slot)) || (!(*head & MPZ_SLOT_FLAG_USED))) {
 		raise(SIGSEGV);
 	}
@@ -154,12 +155,12 @@ mpz_void_t mpz_free(
 	}
 
 	/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-	/* Remove the "used" mark. */
 
 	size = MPZ_SLOT_READ_SIZE(slot);
 
 #ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
 
+	/* Remove the "used" mark. */
 	_mpz_slot_init(slot, size, 0);
 
 #endif /* MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS */
