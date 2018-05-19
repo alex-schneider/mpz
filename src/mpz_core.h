@@ -38,6 +38,8 @@
  * The MPZ implements simple checks for "segmentation faults" and "double free"
  * errors. In cases that an error is detected MPZ immediately raises an "SIGSEGV"
  * error. To disable this behavior just comment out the following definement.
+ * 
+ * Disabling of this feature increases a little bit the performance of the MPZ.
 */
 #define MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
 
