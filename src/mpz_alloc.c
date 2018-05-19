@@ -41,6 +41,8 @@
 
 #ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
 
+#define MPZ_FOOTER_MARK  (0xFFFFFFFF)
+
 #define MPZ_SLOT_GOTO_FOOT(sl, si)  ( \
 	(mpz_uint32_t *)((mpz_uchar_t *)(sl) + sizeof(mpz_uint32_t) + (si)) \
 )
@@ -141,7 +143,7 @@ mpz_void_t mpz_free(
 
 #ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
 
-	if ((*head != *MPZ_SLOT_READ_FOOT(slot)) || (!(*head & MPZ_SLOT_FLAG_USED))) {
+	if ((MPZ_FOOTER_MARK != *MPZ_SLOT_READ_FOOT(slot)) || (!(*head & MPZ_SLOT_FLAG_USED))) {
 		raise(SIGSEGV);
 	}
 
@@ -368,7 +370,7 @@ static inline mpz_void_t _mpz_slot_init(
 
 #ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
 
-	*MPZ_SLOT_GOTO_FOOT(slot, size) = (0 | flags | size);
+	*MPZ_SLOT_GOTO_FOOT(slot, size) = MPZ_FOOTER_MARK;
 
 #endif /* MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS */
 

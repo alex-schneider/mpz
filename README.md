@@ -138,11 +138,11 @@ BINS (binning)
                                                \____/                                             NULL
 ```
 
-#### Illustration of a MPZ `slot` header and footer bits
+#### Illustration of a MPZ `slot` header
 
-The header and footer are always equals. This fact allows to detect `segmentation
-fault` errors if an application writes over the allocated memory space (unreliable
-but simple).
+The header contains the metadata of the `slot`. All of the 32 bits of the footer
+a filled with `1`. This fact allows to detect `segmentation fault` errors if an
+application writes over the allocated memory space (unreliable but simple).
 
 ```markdown
 =======
