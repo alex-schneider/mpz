@@ -17,7 +17,7 @@ for structs in tokenization applications.
   space to be efficiently reused, which in most memory pool implementations is
   either unavailable or quite slow.
 * Constant time for the memory space allocations from the internal memory unless
-  the MPZ needs to grab a new memory space from the OS.
+  the MPZ needs to grab a new memory space from the OS via `malloc()`.
 * Constant time for the `free` operations to the internal memory space.
 * Implements simple security checks for `segmentation faults` and `double free`
   errors.
