@@ -11,14 +11,15 @@ for structs in tokenization applications.
 * Doesn't require any external libraries.
 * Optimized for 32 and 64 bit systems on little-endian machines.
 * Prevents internal memory space fragmentation (freed memory space is reusable).
-* Implements memory space alignment to avoid wasting CPU cycles when accessing the
-  data.
+* Implements [memory space alignment](https://en.wikipedia.org/wiki/Data_structure_alignment)
+  to avoid wasting CPU cycles when accessing the data.
 * Implements a very fast reset of the allocated memory space to permitt the memory
   space to be efficiently reused, which in most memory pool implementations is
   either unavailable or quite slow.
-* Constant time for the memory space allocations from the internal memory unless
-  the MPZ needs to grab a new memory space from the OS via `malloc()`.
-* Constant time for the `free` operations to the internal memory space.
+* Constant time for the memory space allocations from the internal memory space
+  unless the MPZ needs to grab a new memory space from the OS via `malloc()`.
+* Constant time for the `free` operations unless the MPZ needs to release the memory
+  space back to the OS.
 * Implements simple security checks for `segmentation faults` and `double free`
   errors.
 * Very easy to modify or extend.
@@ -40,8 +41,8 @@ for structs in tokenization applications.
 ## About MPZ
 
 The MPZ implements memory space alignment to avoid wasting CPU cycles when accessing
-the data. The alignment is continuously implemented for the internal purposes as
-well as for the return pointers to the user. The alignment size for memory space
+the data. The alignment is continuously implemented for the accessing internal metadata
+as well as for the return pointers to the user. The alignment size for memory space
 allocations from the OS is borrowed from GNU libc and is defined as `2 * sizeof(size_t)`
 which is 16 bytes on 64 bit systems. By the way, the memory pool of [nginx](http://nginx.org)
 is one of the fastest pools today (as of year 2018) and it also uses this alignment,
