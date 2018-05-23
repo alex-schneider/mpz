@@ -19,7 +19,7 @@ for structs in tokenization applications.
 * Constant time for the memory space allocations from the internal memory space
   unless the MPZ needs to grab a new memory space from the OS via `malloc()`.
 * Constant time for the `free` operations unless the MPZ needs to release the memory
-  space back to the OS.
+  space back to the OS via `free()`.
 * Implements simple security checks for `segmentation faults` and `double free`
   errors.
 * Very easy to modify or extend.
