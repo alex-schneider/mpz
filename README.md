@@ -1,3 +1,5 @@
+[![Software license][ico-license]](LICENSE)
+
 # MEMORY-POOL-Z (MPZ)
 
 The MPZ is a simple implementation, of a very fast and effective memory pool. It's
@@ -292,3 +294,5 @@ int example_function()
     return 0;
 }
 ```
+
+[ico-license]: https://img.shields.io/github/license/mashape/apistatus.svg
