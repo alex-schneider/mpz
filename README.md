@@ -1,4 +1,5 @@
-[![Software license][ico-license]](LICENSE)
+[![Software license][ico-license]](https://github.com/alex-schneider/mpz/blob/master/LICENSE)
+[![Latest Release][ico-release]](https://github.com/alex-schneider/mpz/releases/latest)
 
 # MEMORY-POOL-Z (MPZ)
 
@@ -296,3 +297,4 @@ int example_function()
 ```
 
 [ico-license]: https://img.shields.io/github/license/mashape/apistatus.svg
+[ico-release]: https://img.shields.io/github/release/alex-schneider/mpz.svg
