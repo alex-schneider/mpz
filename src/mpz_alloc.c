@@ -178,7 +178,7 @@ mpz_void_t mpz_free(
 	/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 	/* Push the slot into the bins-array. */
 
-	idx  = MPZ_BIN_IDX(size);
+	idx = MPZ_BIN_IDX(size);
 
 	slot->next = pool->bins[idx];
 
@@ -196,6 +196,7 @@ MPZ_FORCE_INLINE mpz_void_t _mpz_pool_gc(
 	mpz_uint_t  idx;
 
 	MPZ_CHECK_VOID(pool);
+	MPZ_CHECK_VOID(pool->slabs);
 
 	/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
