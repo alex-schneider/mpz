@@ -3,7 +3,7 @@
 
 # MEMORY-POOL-Z (MPZ)
 
-The MPZ is a simple implementation, of a very fast and effective memory pool. It's
+The MPZ is a simple implementation of a very fast and effective memory pool. It's
 designed for using in applications with a lot of memory space allocations of the
 repeatedly sizes up to 1.024 bytes (default, configurable) per allocation, e.g.
 for structs in tokenization applications.
