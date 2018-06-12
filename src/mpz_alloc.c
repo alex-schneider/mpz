@@ -103,7 +103,7 @@ mpz_pool_t *mpz_pool_create(
 
 	MPZ_CHECK_NULL(pool = mpz_memalign(MPZ_ALLOC_ALIGNMENT, MPZ_POOL_SIZE));
 
-	for (idx = 0; idx < MPZ_BINS; idx++) {
+	for (idx = MPZ_BINS; idx--; ) {
 		pool->bins[idx] = NULL;
 	}
 
@@ -200,7 +200,7 @@ MPZ_FORCE_INLINE mpz_void_t _mpz_pool_gc(
 
 	/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	for (idx = 0; idx < MPZ_BINS; idx++) {
+	for (idx = MPZ_BINS; idx--; ) {
 		pool->bins[idx] = NULL;
 	}
 
