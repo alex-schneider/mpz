@@ -250,7 +250,9 @@ MPZ_FORCE_INLINE mpz_void_t *_mpz_palloc(
 
 	if (size > (MPZ_BINS << MPZ_BINS_BIT_SHIFT)) {
 		/* We have to grab a new memory space from the OS. */
-		MPZ_CHECK_NULL(slab = _mpz_slab_create(pool, size + MPZ_SLOT_SIZE));
+		slab = _mpz_slab_create(pool, size + MPZ_SLOT_SIZE);
+
+		MPZ_CHECK_NULL(slab);
 
 		/* The new slab contains only a single huge slot. */
 		_mpz_slot_init(slot = MPZ_SLAB_TO_SLOT(slab), size, MPZ_SLOT_FLAG_HUGE|MPZ_SLOT_FLAG_USED);
@@ -258,15 +260,18 @@ MPZ_FORCE_INLINE mpz_void_t *_mpz_palloc(
 		return MPZ_SLOT_TO_DATA(slot);
 	}
 
-	idx = MPZ_BIN_IDX(size);
+	idx  = MPZ_BIN_IDX(size);
+	slot = pool->bins[idx];
 
-	if (NULL == (slot = pool->bins[idx])) {
+	if (NULL == slot) {
 		/**
 		 * The pool is either completely empty (new) or consists of slabs
 		 * without empty slots for the requested size in the bins-list.
 		 * We have to grab a new memory space from the OS.
 		*/
-		MPZ_CHECK_NULL(slab = _mpz_slab_create(pool, (size + MPZ_SLOT_SIZE) * MPZ_SLAB_ALLOC_MUL));
+		slab = _mpz_slab_create(pool, (size + MPZ_SLOT_SIZE) * MPZ_SLAB_ALLOC_MUL);
+
+		MPZ_CHECK_NULL(slab);
 
 		_mpz_slab_init(pool, slab, size);
 	}
@@ -292,9 +297,9 @@ MPZ_FORCE_INLINE mpz_void_t *_mpz_palloc(
 MPZ_FORCE_INLINE mpz_void_t *_mpz_slab_create(
 	mpz_pool_t *pool, mpz_csize_t size
 ) {
-	mpz_slab_t *slab;
+	mpz_slab_t *slab = mpz_memalign(MPZ_ALLOC_ALIGNMENT, size + MPZ_SLAB_SIZE);
 
-	MPZ_CHECK_NULL(slab = mpz_memalign(MPZ_ALLOC_ALIGNMENT, size + MPZ_SLAB_SIZE));
+	MPZ_CHECK_NULL(slab);
 
 	_mpz_slab_push(pool, slab);
 
@@ -309,7 +314,7 @@ MPZ_FORCE_INLINE mpz_void_t _mpz_slab_init(
 
 	idx = MPZ_BIN_IDX(size);
 
-	for (i = 0; i < MPZ_SLAB_ALLOC_MUL; i++) {
+	for (i = 0; i < MPZ_SLAB_ALLOC_MUL; ++i) {
 		/* Set slot metadata. */
 		_mpz_slot_init(slot, size, 0);
 
