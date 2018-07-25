@@ -17,7 +17,13 @@
 #define MPZ_CHECK_VOID(p)    ({ if (NULL == (p)) return; })
 #define MPZ_CHECK_NULL(p)    ({ if (NULL == (p)) return NULL; })
 
-#define MPZ_SLOT_SIZE        (sizeof(mpz_slot_t *) + sizeof(mpz_uint32_t) * 2)
+#ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
+#	define MPZ_SLOT_OVERHEAD (sizeof(mpz_uint32_t) * 2)
+#else
+#	define MPZ_SLOT_OVERHEAD (sizeof(mpz_uint32_t) * 1)
+#endif /* MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS */
+
+#define MPZ_SLOT_SIZE        (sizeof(mpz_slot_t *) + MPZ_SLOT_OVERHEAD)
 #define MPZ_SLAB_SIZE        (mpz_align(sizeof(mpz_slab_t), MPZ_ALLOC_ALIGNMENT))
 #define MPZ_POOL_SIZE        (mpz_align(sizeof(mpz_pool_t), MPZ_ALLOC_ALIGNMENT))
 
@@ -246,7 +252,8 @@ MPZ_FORCE_INLINE mpz_void_t *_mpz_palloc(
 		return NULL;
 	}
 
-	size = mpz_align(size, MPZ_SLOTS_ALIGNMENT);
+	size += MPZ_SLOT_OVERHEAD;
+	size  = mpz_align(size, MPZ_SLOTS_ALIGNMENT);
 
 	if (size > (MPZ_BINS << MPZ_BINS_BIT_SHIFT)) {
 		/* We have to grab a new memory space from the OS. */
