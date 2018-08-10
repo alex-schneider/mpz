@@ -39,7 +39,7 @@ for structs in tokenization applications.
 
 ## Bugs
 
-* No bugs known!
+* Fixed: The overhead size of the slot was not added to the requested allocation size ([04f53a4](https://github.com/alex-schneider/mpz/commit/04f53a4a0e03f9a3cd6d84013a5faa4df115045c))
 
 ## About MPZ
 
