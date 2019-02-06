@@ -11,6 +11,7 @@ for structs in tokenization applications.
 ## Features
 
 * Written in pure `C`.
+* Supports thread safety.
 * Doesn't require any external libraries.
 * Optimized for 32 and 64 bit systems on little-endian machines.
 * Prevents internal memory space fragmentation (freed memory space is reusable).

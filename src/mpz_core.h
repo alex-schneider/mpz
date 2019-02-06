@@ -35,11 +35,19 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /**
+ * The MPZ supports thread safety and may easy be used in multi-thread applications.
+ * To disable this behavior just comment out the following definement.
+ * 
+ * Disabling of this feature increases the performance of the MPZ.
+*/
+#define MPZ_ENABLE_THREAD_SAFETY
+
+/**
  * The MPZ implements simple checks for "segmentation faults" and "double free"
  * errors. In cases that an error is detected MPZ immediately raises an "SIGSEGV"
  * error. To disable this behavior just comment out the following definement.
  * 
- * Disabling of this feature increases a little bit the performance of the MPZ.
+ * Disabling of this feature increases the performance of the MPZ.
 */
 #define MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
 
@@ -92,6 +100,7 @@
 typedef void                mpz_void_t;
 typedef const void          mpz_cvoid_t;
 typedef unsigned char       mpz_uchar_t;
+typedef int                 mpz_int_t;
 typedef unsigned int        mpz_uint_t;
 typedef const unsigned int  mpz_cuint_t;
 typedef uint32_t            mpz_uint32_t;
@@ -101,35 +110,38 @@ typedef const size_t        mpz_csize_t;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef struct _mpz_pool_s  mpz_pool_t;
-typedef struct _mpz_slab_s  mpz_slab_t;
-typedef struct _mpz_slot_s  mpz_slot_t;
+#if defined (__cplusplus) || defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L /* C99 */
+	#ifdef __GNUC__
+		#define MPZ_FORCE_INLINE static inline __attribute__((always_inline))
+	#else
+		#define MPZ_FORCE_INLINE static inline
+	#endif /* __GNUC__ */
+#else
+	#define MPZ_FORCE_INLINE static
+#endif /* __STDC_VERSION__ */
 
-struct _mpz_slot_s
-{
-	mpz_void_t *data;
-	mpz_slot_t *next;
-};
+#define MPZ_CHECK_INT(p, i)  ({ if (NULL == (p)) return (i); })
+#define MPZ_CHECK_VOID(p)    ({ if (NULL == (p)) return; })
+#define MPZ_CHECK_NULL(p)    ({ if (NULL == (p)) return NULL; })
 
-struct _mpz_slab_s
-{
-	mpz_slab_t *prev;
-	mpz_slab_t *next;
-};
-
-struct _mpz_pool_s
-{
-	mpz_slot_t *bins[MPZ_BINS];
-	mpz_slab_t *slabs;
-};
+#define MPZ_SUCCESS          (0)
+#define MPZ_FAILURE          (1)
 
 /* ==================================================================================================== */
+
+#ifdef MPZ_ENABLE_THREAD_SAFETY
+#include <pthread.h>
+#endif /* MPZ_ENABLE_THREAD_SAFETY */
 
 #ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
 #include <signal.h>
 #endif /* MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef MPZ_ENABLE_THREAD_SAFETY
+#include "mpz_mutex.h"
+#endif /* MPZ_ENABLE_THREAD_SAFETY */
 
 #include "mpz_alloc.h"
 

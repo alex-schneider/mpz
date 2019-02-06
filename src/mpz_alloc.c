@@ -14,13 +14,10 @@
 
 #define MPZ_ALLOC_ALIGNMENT  (2 * sizeof(mpz_void_t *))
 
-#define MPZ_CHECK_VOID(p)    ({ if (NULL == (p)) return; })
-#define MPZ_CHECK_NULL(p)    ({ if (NULL == (p)) return NULL; })
-
 #ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
-#	define MPZ_SLOT_OVERHEAD (sizeof(mpz_uint32_t) * 2)
+	#define MPZ_SLOT_OVERHEAD (sizeof(mpz_uint32_t) * 2)
 #else
-#	define MPZ_SLOT_OVERHEAD (sizeof(mpz_uint32_t) * 1)
+	#define MPZ_SLOT_OVERHEAD (sizeof(mpz_uint32_t) * 1)
 #endif /* MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS */
 
 #define MPZ_SLOT_SIZE        (sizeof(mpz_slot_t *) + MPZ_SLOT_OVERHEAD)
@@ -38,35 +35,24 @@
 #define MPZ_POOL_MIN_ALLOC   (MPZ_SLOTS_ALIGNMENT)
 #define MPZ_POOL_MAX_ALLOC   ((mpz_cuint32_t)((1 << 29) - 1))
 
-#define MPZ_SLOT_READ_HEAD(s)       ( \
+#define MPZ_SLOT_READ_HEAD(s)  ( \
 	(mpz_uint32_t *)(s) \
 )
-#define MPZ_SLOT_READ_SIZE(s)       ( \
+#define MPZ_SLOT_READ_SIZE(s)  ( \
 	(mpz_uint32_t)((*MPZ_SLOT_READ_HEAD(s) << 2) >> 2) \
 )
 
 #ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
+	#define MPZ_FOOTER_MARK  (0xFFFFFFFF)
 
-#define MPZ_FOOTER_MARK  (0xFFFFFFFF)
+	#define MPZ_SLOT_GOTO_FOOT(sl, si)  ( \
+		(mpz_uint32_t *)((mpz_uchar_t *)(sl) + sizeof(mpz_uint32_t) + (si)) \
+	)
 
-#define MPZ_SLOT_GOTO_FOOT(sl, si)  ( \
-	(mpz_uint32_t *)((mpz_uchar_t *)(sl) + sizeof(mpz_uint32_t) + (si)) \
-)
-#define MPZ_SLOT_READ_FOOT(s)       ( \
-	(mpz_uint32_t *)MPZ_SLOT_GOTO_FOOT((s), MPZ_SLOT_READ_SIZE(s)) \
-)
-
+	#define MPZ_SLOT_READ_FOOT(s)       ( \
+		(mpz_uint32_t *)MPZ_SLOT_GOTO_FOOT((s), MPZ_SLOT_READ_SIZE(s)) \
+	)
 #endif /* MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS */
-
-#if defined (__cplusplus) || defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L /* C99 */
-#	ifdef __GNUC__
-#		define MPZ_FORCE_INLINE static inline __attribute__((always_inline))
-#	else
-#		define MPZ_FORCE_INLINE static inline
-#	endif /* __GNUC__ */
-#else
-#	define MPZ_FORCE_INLINE static
-#endif /* __STDC_VERSION__ */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -104,8 +90,8 @@ MPZ_FORCE_INLINE mpz_void_t _mpz_slot_init(
 mpz_pool_t *mpz_pool_create(
 	mpz_void_t
 ) {
-	mpz_pool_t *pool;
-	mpz_uint_t  idx;
+	mpz_pool_t  *pool;
+	mpz_uint_t   idx;
 
 	MPZ_CHECK_NULL(pool = mpz_memalign(MPZ_ALLOC_ALIGNMENT, MPZ_POOL_SIZE));
 
@@ -115,21 +101,54 @@ mpz_pool_t *mpz_pool_create(
 
 	pool->slabs = NULL;
 
+#ifdef MPZ_ENABLE_THREAD_SAFETY
+	mpz_mutex_init(&pool->mutex, NULL);
+#endif /* MPZ_ENABLE_THREAD_SAFETY */
+
 	return pool;
 }
 
-mpz_void_t mpz_pool_reset(
+mpz_int_t mpz_pool_reset(
 	mpz_pool_t *pool
 ) {
+#ifdef MPZ_ENABLE_THREAD_SAFETY
+	MPZ_CHECK_INT(pool, MPZ_FAILURE);
+
+	if (0 != mpz_mutex_lock(&pool->mutex)) {
+		return MPZ_FAILURE;
+	}
+#endif /* MPZ_ENABLE_THREAD_SAFETY */
+
 	_mpz_pool_gc(pool, 1);
+
+#ifdef MPZ_ENABLE_THREAD_SAFETY
+	mpz_mutex_unlock(&pool->mutex);
+#endif /* MPZ_ENABLE_THREAD_SAFETY */
+
+	return MPZ_SUCCESS;
 }
 
-mpz_void_t mpz_pool_destroy(
+mpz_int_t mpz_pool_destroy(
 	mpz_pool_t *pool
 ) {
+#ifdef MPZ_ENABLE_THREAD_SAFETY
+	MPZ_CHECK_INT(pool, MPZ_FAILURE);
+
+	if (0 != mpz_mutex_lock(&pool->mutex)) {
+		return MPZ_FAILURE;
+	}
+#endif /* MPZ_ENABLE_THREAD_SAFETY */
+
 	_mpz_pool_gc(pool, 0);
 
+#ifdef MPZ_ENABLE_THREAD_SAFETY
+	mpz_mutex_unlock(&pool->mutex);
+	mpz_mutex_destroy(&pool->mutex);
+#endif /* MPZ_ENABLE_THREAD_SAFETY */
+
 	free(pool);
+
+	return MPZ_SUCCESS;
 }
 
 mpz_void_t *mpz_pmalloc(
@@ -144,30 +163,40 @@ mpz_void_t *mpz_pcalloc(
 	return _mpz_palloc(pool, size, 1);
 }
 
-mpz_void_t mpz_free(
+mpz_int_t mpz_free(
 	mpz_pool_t *pool, mpz_cvoid_t *data
 ) {
-	mpz_slot_t   *slot;
-	mpz_uint32_t *head, size;
-	mpz_uint_t    idx;
+	mpz_slot_t    *slot;
+	mpz_uint32_t  *head, size;
+	mpz_uint_t     idx;
 
-	MPZ_CHECK_VOID(pool);
-	MPZ_CHECK_VOID(data);
+	MPZ_CHECK_INT(pool, MPZ_FAILURE);
+	MPZ_CHECK_INT(data, MPZ_FAILURE);
+
+#ifdef MPZ_ENABLE_THREAD_SAFETY
+	if (0 != mpz_mutex_lock(&pool->mutex)) {
+		return MPZ_FAILURE;
+	}
+#endif /* MPZ_ENABLE_THREAD_SAFETY */
 
 	slot = MPZ_DATA_TO_SLOT(data);
 	head = MPZ_SLOT_READ_HEAD(slot);
 
 #ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
-
 	/* Check both "segmentation faults" and "double free" errors. */
 	if ((MPZ_FOOTER_MARK != *MPZ_SLOT_READ_FOOT(slot)) || (!(*head & MPZ_SLOT_FLAG_USED))) {
 		raise(SIGSEGV);
 	}
-
 #endif /* MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS */
 
 	if (*head & MPZ_SLOT_FLAG_HUGE) {
-		return _mpz_slab_free(pool, slot);
+		_mpz_slab_free(pool, slot);
+
+#ifdef MPZ_ENABLE_THREAD_SAFETY
+		mpz_mutex_unlock(&pool->mutex);
+#endif /* MPZ_ENABLE_THREAD_SAFETY */
+
+		return MPZ_SUCCESS;
 	}
 
 	/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -175,10 +204,8 @@ mpz_void_t mpz_free(
 	size = MPZ_SLOT_READ_SIZE(slot);
 
 #ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
-
 	/* Remove the "used" mark. */
 	_mpz_slot_init(slot, size, 0);
-
 #endif /* MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS */
 
 	/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -189,6 +216,12 @@ mpz_void_t mpz_free(
 	slot->next = pool->bins[idx];
 
 	pool->bins[idx] = slot;
+
+#ifdef MPZ_ENABLE_THREAD_SAFETY
+	mpz_mutex_unlock(&pool->mutex);
+#endif /* MPZ_ENABLE_THREAD_SAFETY */
+
+	return MPZ_SUCCESS;
 }
 
 /* ==================================================================================================== */
@@ -197,9 +230,9 @@ mpz_void_t mpz_free(
 MPZ_FORCE_INLINE mpz_void_t _mpz_pool_gc(
 	mpz_pool_t *pool, mpz_cuint_t soft
 ) {
-	mpz_slab_t *slab, *next;
-	mpz_slot_t *slot;
-	mpz_uint_t  idx;
+	mpz_slab_t  *slab, *next;
+	mpz_slot_t  *slot;
+	mpz_uint_t   idx;
 
 	MPZ_CHECK_VOID(pool);
 	MPZ_CHECK_VOID(pool->slabs);
@@ -240,9 +273,9 @@ MPZ_FORCE_INLINE mpz_void_t _mpz_pool_gc(
 MPZ_FORCE_INLINE mpz_void_t *_mpz_palloc(
 	mpz_pool_t *pool, mpz_size_t size, mpz_cuint_t zeroize
 ) {
-	mpz_slab_t *slab;
-	mpz_slot_t *slot;
-	mpz_uint_t  idx;
+	mpz_slab_t  *slab;
+	mpz_slot_t  *slot;
+	mpz_uint_t   idx;
 
 	MPZ_CHECK_NULL(pool);
 
@@ -251,6 +284,12 @@ MPZ_FORCE_INLINE mpz_void_t *_mpz_palloc(
 	} else if (size > MPZ_POOL_MAX_ALLOC) {
 		return NULL;
 	}
+
+#ifdef MPZ_ENABLE_THREAD_SAFETY
+	if (0 != mpz_mutex_lock(&pool->mutex)) {
+		return NULL;
+	}
+#endif /* MPZ_ENABLE_THREAD_SAFETY */
 
 	size += MPZ_SLOT_OVERHEAD;
 	size  = mpz_align(size, MPZ_SLOTS_ALIGNMENT);
@@ -263,6 +302,10 @@ MPZ_FORCE_INLINE mpz_void_t *_mpz_palloc(
 
 		/* The new slab contains only a single huge slot. */
 		_mpz_slot_init(slot = MPZ_SLAB_TO_SLOT(slab), size, MPZ_SLOT_FLAG_HUGE|MPZ_SLOT_FLAG_USED);
+
+#ifdef MPZ_ENABLE_THREAD_SAFETY
+		mpz_mutex_unlock(&pool->mutex);
+#endif /* MPZ_ENABLE_THREAD_SAFETY */
 
 		return MPZ_SLOT_TO_DATA(slot);
 	}
@@ -288,15 +331,17 @@ MPZ_FORCE_INLINE mpz_void_t *_mpz_palloc(
 	pool->bins[idx] = slot->next;
 
 #ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
-
 	/* Mark the slot as "used". */
 	_mpz_slot_init(slot, size, MPZ_SLOT_FLAG_USED);
-
 #endif /* MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS */
 
 	if (zeroize) {
 		mpz_memzero(MPZ_SLOT_TO_DATA(slot), size);
 	}
+
+#ifdef MPZ_ENABLE_THREAD_SAFETY
+	mpz_mutex_unlock(&pool->mutex);
+#endif /* MPZ_ENABLE_THREAD_SAFETY */
 
 	return MPZ_SLOT_TO_DATA(slot);
 }
@@ -316,8 +361,8 @@ MPZ_FORCE_INLINE mpz_void_t *_mpz_slab_create(
 MPZ_FORCE_INLINE mpz_void_t _mpz_slab_init(
 	mpz_pool_t *pool, mpz_slab_t *slab, mpz_cuint32_t size
 ) {
-	mpz_slot_t *slot = MPZ_SLAB_TO_SLOT(slab);
-	mpz_uint_t  idx, i;
+	mpz_slot_t  *slot = MPZ_SLAB_TO_SLOT(slab);
+	mpz_uint_t   idx, i;
 
 	idx = MPZ_BIN_IDX(size);
 
@@ -392,9 +437,6 @@ MPZ_FORCE_INLINE mpz_void_t _mpz_slot_init(
 	*MPZ_SLOT_READ_HEAD(slot) = (0 | flags | size);
 
 #ifdef MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS
-
 	*MPZ_SLOT_GOTO_FOOT(slot, size) = MPZ_FOOTER_MARK;
-
 #endif /* MPZ_RAISE_SIGSEGV_ON_MEM_ERRORS */
-
 }
