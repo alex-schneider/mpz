@@ -102,7 +102,7 @@ mpz_pool_t *mpz_pool_create(
 	pool->slabs = NULL;
 
 #ifdef MPZ_ENABLE_THREAD_SAFETY
-	mpz_mutex_init(&pool->mutex, NULL);
+	mpz_mutex_init(&(pool->mutex), NULL);
 #endif /* MPZ_ENABLE_THREAD_SAFETY */
 
 	return pool;
@@ -114,7 +114,7 @@ mpz_int_t mpz_pool_reset(
 #ifdef MPZ_ENABLE_THREAD_SAFETY
 	MPZ_CHECK_INT(pool, MPZ_FAILURE);
 
-	if (0 != mpz_mutex_lock(&pool->mutex)) {
+	if (0 != mpz_mutex_lock(&(pool->mutex))) {
 		return MPZ_FAILURE;
 	}
 #endif /* MPZ_ENABLE_THREAD_SAFETY */
@@ -122,7 +122,7 @@ mpz_int_t mpz_pool_reset(
 	_mpz_pool_gc(pool, 1);
 
 #ifdef MPZ_ENABLE_THREAD_SAFETY
-	mpz_mutex_unlock(&pool->mutex);
+	mpz_mutex_unlock(&(pool->mutex));
 #endif /* MPZ_ENABLE_THREAD_SAFETY */
 
 	return MPZ_SUCCESS;
@@ -134,7 +134,7 @@ mpz_int_t mpz_pool_destroy(
 #ifdef MPZ_ENABLE_THREAD_SAFETY
 	MPZ_CHECK_INT(pool, MPZ_FAILURE);
 
-	if (0 != mpz_mutex_lock(&pool->mutex)) {
+	if (0 != mpz_mutex_lock(&(pool->mutex))) {
 		return MPZ_FAILURE;
 	}
 #endif /* MPZ_ENABLE_THREAD_SAFETY */
@@ -142,8 +142,8 @@ mpz_int_t mpz_pool_destroy(
 	_mpz_pool_gc(pool, 0);
 
 #ifdef MPZ_ENABLE_THREAD_SAFETY
-	mpz_mutex_unlock(&pool->mutex);
-	mpz_mutex_destroy(&pool->mutex);
+	mpz_mutex_unlock(&(pool->mutex));
+	mpz_mutex_destroy(&(pool->mutex));
 #endif /* MPZ_ENABLE_THREAD_SAFETY */
 
 	free(pool);
@@ -174,7 +174,7 @@ mpz_int_t mpz_free(
 	MPZ_CHECK_INT(data, MPZ_FAILURE);
 
 #ifdef MPZ_ENABLE_THREAD_SAFETY
-	if (0 != mpz_mutex_lock(&pool->mutex)) {
+	if (0 != mpz_mutex_lock(&(pool->mutex))) {
 		return MPZ_FAILURE;
 	}
 #endif /* MPZ_ENABLE_THREAD_SAFETY */
@@ -193,7 +193,7 @@ mpz_int_t mpz_free(
 		_mpz_slab_free(pool, slot);
 
 #ifdef MPZ_ENABLE_THREAD_SAFETY
-		mpz_mutex_unlock(&pool->mutex);
+		mpz_mutex_unlock(&(pool->mutex));
 #endif /* MPZ_ENABLE_THREAD_SAFETY */
 
 		return MPZ_SUCCESS;
@@ -218,7 +218,7 @@ mpz_int_t mpz_free(
 	pool->bins[idx] = slot;
 
 #ifdef MPZ_ENABLE_THREAD_SAFETY
-	mpz_mutex_unlock(&pool->mutex);
+	mpz_mutex_unlock(&(pool->mutex));
 #endif /* MPZ_ENABLE_THREAD_SAFETY */
 
 	return MPZ_SUCCESS;
@@ -286,7 +286,7 @@ MPZ_FORCE_INLINE mpz_void_t *_mpz_palloc(
 	}
 
 #ifdef MPZ_ENABLE_THREAD_SAFETY
-	if (0 != mpz_mutex_lock(&pool->mutex)) {
+	if (0 != mpz_mutex_lock(&(pool->mutex))) {
 		return NULL;
 	}
 #endif /* MPZ_ENABLE_THREAD_SAFETY */
@@ -304,7 +304,7 @@ MPZ_FORCE_INLINE mpz_void_t *_mpz_palloc(
 		_mpz_slot_init(slot = MPZ_SLAB_TO_SLOT(slab), size, MPZ_SLOT_FLAG_HUGE|MPZ_SLOT_FLAG_USED);
 
 #ifdef MPZ_ENABLE_THREAD_SAFETY
-		mpz_mutex_unlock(&pool->mutex);
+		mpz_mutex_unlock(&(pool->mutex));
 #endif /* MPZ_ENABLE_THREAD_SAFETY */
 
 		return MPZ_SLOT_TO_DATA(slot);
@@ -340,7 +340,7 @@ MPZ_FORCE_INLINE mpz_void_t *_mpz_palloc(
 	}
 
 #ifdef MPZ_ENABLE_THREAD_SAFETY
-	mpz_mutex_unlock(&pool->mutex);
+	mpz_mutex_unlock(&(pool->mutex));
 #endif /* MPZ_ENABLE_THREAD_SAFETY */
 
 	return MPZ_SLOT_TO_DATA(slot);
