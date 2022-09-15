@@ -1,7 +1,7 @@
 [![Software license][ico-license]](https://github.com/alex-schneider/mpz/blob/master/LICENSE)
 [![Latest Release][ico-release]](https://github.com/alex-schneider/mpz/releases/latest)
 
-# MEMORY-POOL-Z (MPZ)
+# MEMORY-POOL-Zero (MPZ)
 
 The MPZ is a simple implementation of a very fast and effective memory pool. It's
 designed for using in applications with a lot of memory space allocations of the
